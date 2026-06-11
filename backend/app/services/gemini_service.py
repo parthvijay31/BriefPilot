@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from google import genai
+import google.generativeai as genai
 
 from app.config.settings import settings
 
@@ -11,7 +11,11 @@ PROMPT_PATH = (
     / "extraction_prompt.txt"
 )
 
-client = genai.Client(api_key=settings.GEMINI_API_KEY)
+# Configure Gemini
+genai.configure(api_key=settings.GEMINI_API_KEY)
+
+# Create model
+model = genai.GenerativeModel("gemini-2.5-flash")
 
 
 def fallback_result(error=None):
@@ -48,13 +52,11 @@ Client Email:
 """
 
     try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=final_prompt,
-        )
+        response = model.generate_content(final_prompt)
 
         text = response.text
 
+        # Remove markdown formatting if Gemini returns it
         text = text.replace("```json", "")
         text = text.replace("```", "")
         text = text.strip()
@@ -62,5 +64,5 @@ Client Email:
         return json.loads(text)
 
     except Exception as e:
-        print(e)
+        print("GEMINI ERROR:", e)
         return fallback_result(str(e))
